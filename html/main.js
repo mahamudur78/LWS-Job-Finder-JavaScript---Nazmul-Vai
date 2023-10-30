@@ -91,6 +91,8 @@ function searchDelay(fn, delay){
 }
 
 function allJobListSearch(data){ 
+    document.querySelector('#lws-sort').value = 'default';
+
     let jobsortData = [...jobListObg];   
     const subMenuActive = document.querySelector('.sub-menu-acrive');
     if(subMenuActive && subMenuActive.innerText.trim() === 'Internship'){
@@ -191,9 +193,6 @@ document.getElementById('lws-sort').addEventListener('change', (e)=>{
     }else if(subMenuActive && subMenuActive.innerText.trim() === 'Remote'){
         jobsortData = jobsortData.filter(data => data.type === 'Remote');
     }
-
-    console.log(subMenuActive);
-    // console.log(subMenuActive.innerText.trim());
 
     if(e.target.value === 'high-to-low'){
         jobsortData.sort((a, b) => (a.salary < b.salary) ? 1 : -1);
