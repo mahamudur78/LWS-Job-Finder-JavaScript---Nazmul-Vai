@@ -74,10 +74,10 @@ async function getJobListData(){
 window.onload = getJobListData();
 
 // Job lws-searchJob
-document.querySelector('#lws-searchJob').addEventListener('keyup', searchDelay(() =>{
-	const data = document.querySelector('#lws-searchJob');
+const lwsSearchJob = document.querySelector('#lws-searchJob');
+lwsSearchJob.addEventListener('input', searchDelay(() =>{
     indexPageDisplay();
-    allJobListSearch(data);
+    allJobListSearch(lwsSearchJob.value);
 },500));
 
 function searchDelay(fn, delay){
@@ -90,29 +90,52 @@ function searchDelay(fn, delay){
     }
 }
 
-function allJobListSearch(data){ 
-    document.querySelector('#lws-sort').value = 'default';
+const lwsSortSalary = document.querySelector('#lws-sort');
+function currentShotItemCheck(){
+    if(lwsSortSalary.value == "asc" || lwsSortSalary.value == "desc"){
+        return `&_sort=salary&_order=${lwsSortSalary.value}`;
 
-    let jobsortData = [...jobListObg];   
+    }
+    return '';
+}
+
+
+async function JobFinderSalaryShort(dataValue, cbFu){
+    
+    let UrlQuary = "";
+    if(dataValue != ''){
+        UrlQuary = `title_like=${dataValue}`;
+    }
     const subMenuActive = document.querySelector('.sub-menu-acrive');
+
+    let response;
     if(subMenuActive && subMenuActive.innerText.trim() === 'Internship'){
-        jobsortData = jobsortData.filter(data => data.type === 'Internship');
-    
+       response =  await fetch(`http://localhost:9000/jobs/?type=Internship&${UrlQuary}`);
     }else if(subMenuActive && subMenuActive.innerText.trim() === 'Full Time'){
-        jobsortData = jobsortData.filter(data => data.type === 'Full Time');
-    
+        response =  await fetch(`http://localhost:9000/jobs/?type=Full%20Time&${UrlQuary}`);
     }else if(subMenuActive && subMenuActive.innerText.trim() === 'Remote'){
-        jobsortData = jobsortData.filter(data => data.type === 'Remote');
+         response =  await fetch(`http://localhost:9000/jobs/?type=Remote&${UrlQuary}`);
+    }else{
+        response =  await fetch(`http://localhost:9000/jobs/?${UrlQuary}`);
     }
 
+    const jobsortData = [...await response.json()]; 
+    const lwsSort = document.querySelector('#lws-sort');
 
-    var search = new RegExp(data.value , 'i');
-    let resultArray = jobsortData.filter(item => {
-        return search.test(item.title);
-    });
+    if(lwsSort.value === 'high-to-low'){
+        jobsortData.sort((a, b) => (parseInt(a.salary) < parseInt(b.salary)) ? 1 : -1);
+    }else if(lwsSort.value === 'low-to-high'){
+        jobsortData.sort((a, b) => (parseInt(a.salary) > parseInt(b.salary)) ? 1 : -1);
+    }
 
-    if(resultArray.length != 0){
-        allJobListDisplay(resultArray);
+    return jobsortData;
+}
+
+async function allJobListSearch(data){     
+    let jobsortData = await JobFinderSalaryShort(data, currentShotItemCheck);
+
+    if(jobsortData.length != 0){
+        allJobListDisplay(jobsortData);
     }else{
         allJobList.innerHTML = `
         <div class="lws-single-job">
@@ -126,7 +149,6 @@ function allJobListSearch(data){
 
 // tab search
 function subMenuDacrive(){
-    document.getElementById('lws-sort').value = 'default';
     document.querySelector('#lws-searchJob').value = '';
     const subMenu = document.querySelectorAll('.sub-menu');
     subMenu.forEach(data =>{
@@ -141,64 +163,54 @@ document.getElementById('lws-alljobs-menu').addEventListener('click', (e)=>{
     allJobListDisplay(jobListObg);
 });
 
-document.getElementById('lws-internship-menu').addEventListener('click', (e)=>{
+document.getElementById('lws-internship-menu').addEventListener('click', async(e)=>{
+    e.preventDefault();
+    subMenuDacrive()
+
+    e.target.classList.add('sub-menu-acrive');
+    
+    indexPageDisplay();
+    
+    const response =  await fetch(`http://localhost:9000/jobs/?type=Internship${currentShotItemCheck()}`);
+    const result = await response.json();
+
+    allJobListDisplay(result);
+});
+
+
+document.getElementById('lws-fulltime-menu').addEventListener('click', async(e)=>{
     e.preventDefault();
     subMenuDacrive()
 
     e.target.classList.add('sub-menu-acrive');
 
     indexPageDisplay();
-    const getJobship = jobListObg.filter(data => data.type === 'Internship');
-    allJobListDisplay(getJobship);
+    const response =  await fetch(`http://localhost:9000/jobs/?type=Full%20Time${currentShotItemCheck()}`);
+    const result = await response.json();
+    allJobListDisplay(result);
 });
 
-
-document.getElementById('lws-fulltime-menu').addEventListener('click', (e)=>{
+document.getElementById('lws-remote-menu').addEventListener('click', async(e)=>{
     e.preventDefault();
     subMenuDacrive()
 
     e.target.classList.add('sub-menu-acrive');
 
     indexPageDisplay();
-    const getJobship = jobListObg.filter(data => data.type === 'Full Time');
-    allJobListDisplay(getJobship);
-});
-
-document.getElementById('lws-remote-menu').addEventListener('click', (e)=>{
-    e.preventDefault();
-    subMenuDacrive()
-
-    e.target.classList.add('sub-menu-acrive');
-
-    indexPageDisplay();
-    const getJobship = jobListObg.filter(data => data.type === 'Remote');
-    allJobListDisplay(getJobship);
+    const response =  await fetch(`http://localhost:9000/jobs/?type=Remote${currentShotItemCheck()}`);
+    const result = await response.json();
+    allJobListDisplay(result);
 });
 
 
-document.getElementById('lws-sort').addEventListener('change', (e)=>{
+document.getElementById('lws-sort').addEventListener('change', async(e)=>{
     e.preventDefault();
     
     indexPageDisplay();
 
-    let jobsortData = [...jobListObg];
-
-    const subMenuActive = document.querySelector('.sub-menu-acrive');
-    if(subMenuActive && subMenuActive.innerText.trim() === 'Internship'){
-        jobsortData = jobsortData.filter(data => data.type === 'Internship');
     
-    }else if(subMenuActive && subMenuActive.innerText.trim() === 'Full Time'){
-        jobsortData = jobsortData.filter(data => data.type === 'Full Time');
-    
-    }else if(subMenuActive && subMenuActive.innerText.trim() === 'Remote'){
-        jobsortData = jobsortData.filter(data => data.type === 'Remote');
-    }
 
-    if(e.target.value === 'high-to-low'){
-        jobsortData.sort((a, b) => (a.salary < b.salary) ? 1 : -1);
-    }else if(e.target.value === 'low-to-high'){
-        jobsortData.sort((a, b) => (a.salary > b.salary) ? 1 : -1);
-    }
+    let jobsortData = await JobFinderSalaryShort(lwsSearchJob.value, currentShotItemCheck);
     
     allJobListDisplay(jobsortData);
 });
@@ -260,6 +272,16 @@ addJobForm.onsubmit = async function(event){
     // get response
     let result = await response.json();
     console.log(result);
+
+    indexPageDisplay();
+    let jobsortData = await JobFinderSalaryShort('', currentShotItemCheck);
+    allJobListDisplay(jobsortData);
+
+    title.value = '';
+    type.value = '';
+    salary.value = '';
+    deadline.value = '';
+
     
 }
 
@@ -290,7 +312,6 @@ async function jobEdit(event, jobID){
 
 async function jobDelete(event, jobID){
     event.preventDefault();
-    indexPageDisplay();
 
     const headers = new Headers({'Content-Type': 'application/json'});
     let response = await fetch(`http://localhost:9000/jobs/${jobID}`, {
@@ -301,6 +322,10 @@ async function jobDelete(event, jobID){
     // get response
     let result = await response.json();
     console.log(result);
+
+    indexPageDisplay();
+    let jobsortData = await JobFinderSalaryShort('', currentShotItemCheck);
+    allJobListDisplay(jobsortData);
 }
 
 
@@ -308,6 +333,7 @@ async function jobDelete(event, jobID){
 const editJobForm = document.querySelector('#edit-job-form');
 editJobForm.onsubmit = async function(event){
     event.preventDefault();
+
 
     const jobID = document.querySelector('#editLws-JobID').value;
     const title = document.querySelector('#editLws-JobTitle');
@@ -334,5 +360,29 @@ editJobForm.onsubmit = async function(event){
     // get response
     let result = await response.json();
     console.log(result);
+
+    indexPageDisplay();
+
+    let jobsortData = await JobFinderSalaryShort(lwsSearchJob.value, currentShotItemCheck);
+    allJobListDisplay(jobsortData);
     
 }
+
+const lwsJobType = document.querySelector('#lws-JobType');
+document.querySelector("#lws-addJob-menu").addEventListener('click', (e)=>{
+    
+    const subMenuActive = document.querySelector('.sub-menu-acrive');
+
+    if(subMenuActive && subMenuActive.innerText.trim() === 'Internship'){
+        lwsJobType.value = 'Internship';
+        lwsJobType.disabled = true;
+    }else if(subMenuActive && subMenuActive.innerText.trim() === 'Full Time'){
+        lwsJobType.value = 'Full Time';
+        lwsJobType.disabled = true;
+    } else if(subMenuActive && subMenuActive.innerText.trim() === 'Remote'){
+        lwsJobType.value = 'Remote';
+        lwsJobType.disabled = true;
+    }else{
+        lwsJobType.disabled = false;
+    }
+});
